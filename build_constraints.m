@@ -104,6 +104,17 @@ function Constraints = build_constraints(var, par)
 
             % 4. 东数西算与热惯性
             Constraints = [Constraints, 0 <= var.P_trans(t,k) <= par.C_band, var.P_trans(t,k) <= par.gamma_trans * par.P_rigid_East(t)];
+            if par.flag_DR == 1 && par.flag_ramp_DR == 1
+                if t == 1
+                    Constraints = [Constraints, var.P_up(t,k) - par.P_up_0 <= par.Ramp_up_DR, par.P_up_0 - var.P_up(t,k) <= par.Ramp_up_DR];
+                    Constraints = [Constraints, var.P_down(t,k) - par.P_down_0 <= par.Ramp_down_DR, par.P_down_0 - var.P_down(t,k) <= par.Ramp_down_DR];
+                    Constraints = [Constraints, var.P_trans(t,k) - par.P_trans_0 <= par.Ramp_trans, par.P_trans_0 - var.P_trans(t,k) <= par.Ramp_trans];
+                else
+                    Constraints = [Constraints, var.P_up(t,k) - var.P_up(t-1,k) <= par.Ramp_up_DR, var.P_up(t-1,k) - var.P_up(t,k) <= par.Ramp_up_DR];
+                    Constraints = [Constraints, var.P_down(t,k) - var.P_down(t-1,k) <= par.Ramp_down_DR, var.P_down(t-1,k) - var.P_down(t,k) <= par.Ramp_down_DR];
+                    Constraints = [Constraints, var.P_trans(t,k) - var.P_trans(t-1,k) <= par.Ramp_trans, var.P_trans(t-1,k) - var.P_trans(t,k) <= par.Ramp_trans];
+                end
+            end
             Constraints = [Constraints, var.P_IT(t,k) == par.Pdc_idle + var.P_rigid(t) + var.P_shift(t) + (par.P_cut_base(t) - var.P_cut(t,k)) + var.P_up(t,k) - var.P_down(t,k) + var.P_trans(t,k)];
             Constraints = [Constraints, var.Pdc(t,k) == var.P_IT(t,k) + var.P_cool(t,k) + par.mu_trans * var.P_trans(t,k)];
             Constraints = [Constraints, 0 <= var.P_cool(t,k) <= par.Pcool_max];
@@ -111,9 +122,10 @@ function Constraints = build_constraints(var, par)
             decay = par.dt / (par.R_th * par.C_th);
             if t == 1
                 Constraints = [Constraints, var.T_in(t,k) == par.T_in_0*(1-decay) + par.T_out(t)*decay + (par.dt/par.C_th)*var.P_IT(t,k) - (par.dt*par.COP/par.C_th)*var.P_cool(t,k)];
+                Constraints = [Constraints, -par.T_ramp_in_max <= var.T_in(t,k) - par.T_in_0 <= par.T_ramp_in_max];
             else
                 Constraints = [Constraints, var.T_in(t,k) == var.T_in(t-1,k)*(1-decay) + par.T_out(t)*decay + (par.dt/par.C_th)*var.P_IT(t,k) - (par.dt*par.COP/par.C_th)*var.P_cool(t,k)];
-                Constraints = [Constraints, -1.5 <= var.T_in(t,k) - var.T_in(t-1,k) <= 1.5];
+                Constraints = [Constraints, -par.T_ramp_in_max <= var.T_in(t,k) - var.T_in(t-1,k) <= par.T_ramp_in_max];
             end
             Constraints = [Constraints, par.T_in_min <= var.T_in(t,k) <= par.T_in_max];
 
