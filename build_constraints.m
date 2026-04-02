@@ -11,6 +11,7 @@ function Constraints = build_constraints(var, par)
     Constraints = [Constraints, var.P_rigid == par.P_rigid];
     Constraints = [Constraints, sum(var.P_shift) * dt == par.E_shift_total];
     Constraints = [Constraints, var.SUth(1) >= var.Uth(1)];
+    Constraints = [Constraints, var.SDth(1) == 0];
 
     for t = 1:T
         Constraints = [Constraints, 0 <= var.P_shift(t) <= par.P_shift_max * par.shift_window(t)];
@@ -26,6 +27,28 @@ function Constraints = build_constraints(var, par)
         end
         if t > 1
             Constraints = [Constraints, var.SUth(t) >= var.Uth(t) - var.Uth(t-1)];
+            if isfield(par, 'flag_uc_enhanced') && par.flag_uc_enhanced == 1
+                Constraints = [Constraints, var.SDth(t) >= var.Uth(t-1) - var.Uth(t)];
+                Constraints = [Constraints, var.Uth(t) - var.Uth(t-1) == var.SUth(t) - var.SDth(t)];
+                Constraints = [Constraints, var.SUth(t) + var.SDth(t) <= 1];
+            else
+                Constraints = [Constraints, var.SDth(t) == 0];
+            end
+        else
+            if ~(isfield(par, 'flag_uc_enhanced') && par.flag_uc_enhanced == 1)
+                Constraints = [Constraints, var.SDth(t) == 0];
+            end
+        end
+    end
+
+    if isfield(par, 'flag_uc_enhanced') && par.flag_uc_enhanced == 1
+        UT = max(1, round(par.UT_min));
+        DT = max(1, round(par.DT_min));
+        for t = 1:T
+            t_up_end = min(T, t + UT - 1);
+            t_down_end = min(T, t + DT - 1);
+            Constraints = [Constraints, sum(var.Uth(t:t_up_end)) >= (t_up_end - t + 1) * var.SUth(t)];
+            Constraints = [Constraints, sum(1 - var.Uth(t:t_down_end)) >= (t_down_end - t + 1) * var.SDth(t)];
         end
     end
 

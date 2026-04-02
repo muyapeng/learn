@@ -81,6 +81,14 @@ function res = extract_results(var, par, Objective, sol)
     if (res.E_up + res.E_up_short) > tol, res.UpResponseRate = res.E_up / (res.E_up + res.E_up_short); else, res.UpResponseRate = 1; end
     if (res.E_down + res.E_cut + res.E_down_short) > tol, res.DownResponseRate = (res.E_down + res.E_cut) / (res.E_down + res.E_cut + res.E_down_short); else, res.DownResponseRate = 1; end
     res.UpResponseRate = min(max(clip_small(res.UpResponseRate, tol), 0), 1); res.DownResponseRate = min(max(clip_small(res.DownResponseRate, tol), 0), 1);
+    E_up_req = max(sum(par.DR_up_req) * dt, eps);
+    E_down_req = max(sum(par.DR_down_req) * dt, eps);
+    res.DRContributionUp = clip_nonneg(res.E_up / E_up_req, tol);
+    res.DRContributionDown = clip_nonneg((res.E_down + res.E_cut) / E_down_req, tol);
+    res.DRShortfallRateUp = clip_nonneg(res.E_up_short / E_up_req, tol);
+    res.DRShortfallRateDown = clip_nonneg(res.E_down_short / E_down_req, tol);
+    res.EquivalentPeakingCapacity = clip_nonneg(max(res.P_down + res.P_cut), tol);
+    res.EquivalentValleyFillingCapacity = clip_nonneg(max(res.P_up), tol);
 
     res.DCPeak = max(res.Pdc); res.DCValley = min(res.Pdc); res.DCPeakValley = clip_nonneg(res.DCPeak - res.DCValley, tol); res.DCStd = clip_nonneg(std(res.Pdc), tol);
     res.SystemNetLoad = clip_small(par.Load_base + res.Pdc + res.Pch - res.Pdis - res.Pwind - res.Ppv - res.Pcsp, tol);
