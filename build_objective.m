@@ -29,10 +29,28 @@ function Objective = build_objective(var, par)
         else
             C_es_k = 0;
         end
+
+        % ---------------- QoS 轻量惩罚项（线性可开关） ----------------
+        if isfield(par, 'flag_qos') && par.flag_qos == 1
+            % 1) 迁移时延惩罚：体现“P_trans 不是零代价”
+            C_migrate_latency_k = par.c_migrate_latency * sum(var.P_trans(:,k)) * dt;
+
+            % 2) 延迟惩罚：负荷延后执行(P_shift)与中断削减(P_cut)均带来业务损失
+            C_delay_k = par.c_delay * (sum(var.P_shift) + sum(var.P_cut(:,k))) * dt;
+
+            % 3) 回补惩罚：下调后需要上调回补(P_up/P_up_short)并非零代价
+            C_rebound_k = par.c_rebound * (sum(var.P_up(:,k)) + sum(var.P_up_short(:,k))) * dt;
+        else
+            C_migrate_latency_k = 0;
+            C_delay_k = 0;
+            C_rebound_k = 0;
+        end
+        C_qos_k = C_migrate_latency_k + C_delay_k + C_rebound_k;
+        % ------------------------------------------------------------
         
         Savings_trans_k = sum(par.price_East .* var.P_trans(:,k)) * dt;
 
-        C_second_k = C_th_k + C_csp_k + C_grid_k + C_DR_k + C_curt_k + C_es_k - Savings_trans_k;
+        C_second_k = C_th_k + C_csp_k + C_grid_k + C_DR_k + C_curt_k + C_es_k + C_qos_k - Savings_trans_k;
         C_second_array = [C_second_array, C_second_k];
     end
 

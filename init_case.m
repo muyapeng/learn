@@ -9,6 +9,12 @@ function par = init_case(scenario_name, overrides)
 
     par.flag_storage = 1; par.flag_DR = 1; 
     par.flag_reserve_coupling = 1; par.flag_csp = 1;
+
+    % QoS（业务服务质量）惩罚开关与系数：默认关闭以保持与原模型结果一致
+    par.flag_qos = 0;
+    par.c_delay = 20;            % 负荷延迟/延后执行惩罚系数（元/MWh）
+    par.c_migrate_latency = 8;   % 跨区迁移引入时延惩罚系数（元/MWh）
+    par.c_rebound = 12;          % 响应后回补（反向拉升）惩罚系数（元/MWh）
     par.request_mode = 'auto'; par.request_up_scale = 1.0; 
     par.request_down_scale = 1.0; par.request_round_step = 0.5;
 
