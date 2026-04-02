@@ -41,6 +41,7 @@ function var = define_variables(par)
 
     var.P_up     = sdpvar(T,K,'full');
     var.P_down   = sdpvar(T,K,'full');
+    var.P_rebound = sdpvar(T,K,'full');
     var.P_up_short   = sdpvar(T,K,'full');
     var.P_down_short = sdpvar(T,K,'full');
 
