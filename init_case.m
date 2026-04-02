@@ -47,17 +47,15 @@ function par = init_case(scenario_name, overrides)
     par.cut_ratio_max = 0.5; par.E_shift_total = 60; par.P_shift_max = 10;
     par.shift_window = [0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0]';
     par.P_up_max = 16; par.P_down_max = 12; par.DR_hours_max = 10;
-    par.flag_ramp_DR = 0;
-    par.Ramp_up_DR = 16;
-    par.Ramp_down_DR = 12;
-    par.Ramp_trans = 15;
-    par.P_up_0 = 0;
-    par.P_down_0 = 0;
-    par.P_trans_0 = 0;
+    % 回补/恢复效应参数（默认关闭，保持与历史版本一致）
+    par.flag_rebound = 0;
+    par.beta_rebound = 0.6;
+    par.H_rebound = 3;
+    par.P_rebound_max = 8;
+    par.c_rebound = 30;
 
     par.T_out = [26 25 24 24 25 26 28 30 32 34 35 36 36 35 34 33 31 30 29 28 27 27 26 26]'; 
-    par.T_in_min = 20.0; par.T_in_max = 26.0; par.T_in_0 = 23.0;
-    par.T_ramp_in_max = 1.5;
+    par.T_in_min = 20.0; par.T_in_max = 26.0; par.T_in_0 = 23.0;     
     par.COP = 3.5; par.R_th = 1.5; par.C_th = 4.0; par.Pcool_max= 20.0; par.alpha_reserve = 0.15;
 
     par.c_shift_comp = 80; par.c_cut_comp = 180; par.c_DR_up_service = 10;
