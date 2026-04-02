@@ -30,7 +30,6 @@ function res = extract_results(var, par, Objective, sol)
 
     res.P_up         = clip_nonneg(value(var.P_up(:,1)), tol);
     res.P_down       = clip_nonneg(value(var.P_down(:,1)), tol);
-    res.P_rebound    = clip_nonneg(value(var.P_rebound(:,1)), tol);
     res.P_up_short   = clip_nonneg(value(var.P_up_short(:,1)), tol);
     res.P_down_short = clip_nonneg(value(var.P_down_short(:,1)), tol);
 
@@ -50,18 +49,35 @@ function res = extract_results(var, par, Objective, sol)
     if isfield(par,'flag_DR') && par.flag_DR == 1
         res.C_DR_service = par.c_DR_up_service * sum(res.P_up) * dt + par.c_DR_down_service * sum(res.P_down) * dt + par.c_cut_comp * sum(res.P_cut) * dt;
         res.C_DR_short   = par.c_DR_up_short * sum(res.P_up_short) * dt + par.c_DR_down_short * sum(res.P_down_short) * dt;
-        res.C_rebound    = par.flag_rebound * par.c_rebound * sum(res.P_rebound) * dt;
     else
-        res.C_DR_service = 0; res.C_DR_short = 0; res.C_rebound = 0;
+        res.C_DR_service = 0; res.C_DR_short = 0;
     end
     res.C_curt = par.c_curt * (sum(res.Pwind_curt) + sum(res.Ppv_curt)) * dt;
     if isfield(par,'flag_storage') && par.flag_storage == 1, res.C_es = par.c_es * (sum(res.Pch) + sum(res.Pdis)) * dt; else, res.C_es = 0; end
 
+    % QoS（业务服务质量）成本分解：默认关闭时返回 0，保证表格导出兼容
+    if isfield(par,'flag_qos') && par.flag_qos == 1
+        % 跨区迁移时延损失：迁移功率越大，潜在链路/调度时延越高
+        res.C_migrate_latency = par.c_migrate_latency * sum(res.P_trans) * dt;
+        % 负荷延迟损失：延后执行(P_shift)和中断削减(P_cut)均会损伤业务体验
+        res.C_delay = par.c_delay * (sum(res.P_shift) + sum(res.P_cut)) * dt;
+        % 回补损失：响应后反向拉升(P_up/P_up_short)会带来额外调度压力
+        res.C_rebound = par.c_rebound * (sum(res.P_up) + sum(res.P_up_short)) * dt;
+    else
+        res.C_migrate_latency = 0;
+        res.C_delay = 0;
+        res.C_rebound = 0;
+    end
+    res.C_qos = res.C_migrate_latency + res.C_delay + res.C_rebound;
+
     res.C_th = clip_nonneg(res.C_th, tol); res.C_csp = clip_nonneg(res.C_csp, tol);
     res.C_grid = clip_nonneg(res.C_grid, tol); res.C_shift = clip_nonneg(res.C_shift, tol);
     res.C_DR_service = clip_nonneg(res.C_DR_service, tol); res.C_DR_short = clip_nonneg(res.C_DR_short, tol);
-    res.C_rebound = clip_nonneg(res.C_rebound, tol);
     res.C_curt = clip_nonneg(res.C_curt, tol); res.C_es = clip_nonneg(res.C_es, tol);
+    res.C_migrate_latency = clip_nonneg(res.C_migrate_latency, tol);
+    res.C_delay = clip_nonneg(res.C_delay, tol);
+    res.C_rebound = clip_nonneg(res.C_rebound, tol);
+    res.C_qos = clip_nonneg(res.C_qos, tol);
     res.C_DR_total = clip_nonneg(res.C_shift + res.C_DR_service + res.C_DR_short, tol);
     if isfield(par, 'price_East'), res.Savings_trans = sum(par.price_East .* res.P_trans) * dt; else, res.Savings_trans = 0; end
 
@@ -70,7 +86,6 @@ function res = extract_results(var, par, Objective, sol)
 
     res.E_shift = clip_nonneg(sum(res.P_shift) * dt, tol); res.E_cut = clip_nonneg(sum(res.P_cut) * dt, tol);
     res.E_up = clip_nonneg(sum(res.P_up) * dt, tol); res.E_down = clip_nonneg(sum(res.P_down) * dt, tol);
-    res.E_rebound = clip_nonneg(sum(res.P_rebound) * dt, tol);
     res.E_up_short = clip_nonneg(sum(res.P_up_short) * dt, tol); res.E_down_short = clip_nonneg(sum(res.P_down_short) * dt, tol);
     res.E_grid = clip_nonneg(sum(res.Pgrid) * dt, tol); res.E_curt = clip_nonneg((sum(res.Pwind_curt) + sum(res.Ppv_curt)) * dt, tol);
     res.E_wind_used = clip_nonneg(sum(res.Pwind) * dt, tol); res.E_pv_used = clip_nonneg(sum(res.Ppv) * dt, tol);
