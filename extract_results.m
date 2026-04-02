@@ -55,29 +55,10 @@ function res = extract_results(var, par, Objective, sol)
     res.C_curt = par.c_curt * (sum(res.Pwind_curt) + sum(res.Ppv_curt)) * dt;
     if isfield(par,'flag_storage') && par.flag_storage == 1, res.C_es = par.c_es * (sum(res.Pch) + sum(res.Pdis)) * dt; else, res.C_es = 0; end
 
-    % QoS（业务服务质量）成本分解：默认关闭时返回 0，保证表格导出兼容
-    if isfield(par,'flag_qos') && par.flag_qos == 1
-        % 跨区迁移时延损失：迁移功率越大，潜在链路/调度时延越高
-        res.C_migrate_latency = par.c_migrate_latency * sum(res.P_trans) * dt;
-        % 负荷延迟损失：延后执行(P_shift)和中断削减(P_cut)均会损伤业务体验
-        res.C_delay = par.c_delay * (sum(res.P_shift) + sum(res.P_cut)) * dt;
-        % 回补损失：响应后反向拉升(P_up/P_up_short)会带来额外调度压力
-        res.C_rebound = par.c_rebound * (sum(res.P_up) + sum(res.P_up_short)) * dt;
-    else
-        res.C_migrate_latency = 0;
-        res.C_delay = 0;
-        res.C_rebound = 0;
-    end
-    res.C_qos = res.C_migrate_latency + res.C_delay + res.C_rebound;
-
     res.C_th = clip_nonneg(res.C_th, tol); res.C_csp = clip_nonneg(res.C_csp, tol);
     res.C_grid = clip_nonneg(res.C_grid, tol); res.C_shift = clip_nonneg(res.C_shift, tol);
     res.C_DR_service = clip_nonneg(res.C_DR_service, tol); res.C_DR_short = clip_nonneg(res.C_DR_short, tol);
     res.C_curt = clip_nonneg(res.C_curt, tol); res.C_es = clip_nonneg(res.C_es, tol);
-    res.C_migrate_latency = clip_nonneg(res.C_migrate_latency, tol);
-    res.C_delay = clip_nonneg(res.C_delay, tol);
-    res.C_rebound = clip_nonneg(res.C_rebound, tol);
-    res.C_qos = clip_nonneg(res.C_qos, tol);
     res.C_DR_total = clip_nonneg(res.C_shift + res.C_DR_service + res.C_DR_short, tol);
     if isfield(par, 'price_East'), res.Savings_trans = sum(par.price_East .* res.P_trans) * dt; else, res.Savings_trans = 0; end
 
@@ -100,6 +81,14 @@ function res = extract_results(var, par, Objective, sol)
     if (res.E_up + res.E_up_short) > tol, res.UpResponseRate = res.E_up / (res.E_up + res.E_up_short); else, res.UpResponseRate = 1; end
     if (res.E_down + res.E_cut + res.E_down_short) > tol, res.DownResponseRate = (res.E_down + res.E_cut) / (res.E_down + res.E_cut + res.E_down_short); else, res.DownResponseRate = 1; end
     res.UpResponseRate = min(max(clip_small(res.UpResponseRate, tol), 0), 1); res.DownResponseRate = min(max(clip_small(res.DownResponseRate, tol), 0), 1);
+    E_up_req = max(sum(par.DR_up_req) * dt, eps);
+    E_down_req = max(sum(par.DR_down_req) * dt, eps);
+    res.DRContributionUp = clip_nonneg(res.E_up / E_up_req, tol);
+    res.DRContributionDown = clip_nonneg((res.E_down + res.E_cut) / E_down_req, tol);
+    res.DRShortfallRateUp = clip_nonneg(res.E_up_short / E_up_req, tol);
+    res.DRShortfallRateDown = clip_nonneg(res.E_down_short / E_down_req, tol);
+    res.EquivalentPeakingCapacity = clip_nonneg(max(res.P_down + res.P_cut), tol);
+    res.EquivalentValleyFillingCapacity = clip_nonneg(max(res.P_up), tol);
 
     res.DCPeak = max(res.Pdc); res.DCValley = min(res.Pdc); res.DCPeakValley = clip_nonneg(res.DCPeak - res.DCValley, tol); res.DCStd = clip_nonneg(std(res.Pdc), tol);
     res.SystemNetLoad = clip_small(par.Load_base + res.Pdc + res.Pch - res.Pdis - res.Pwind - res.Ppv - res.Pcsp, tol);

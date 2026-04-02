@@ -7,6 +7,7 @@ function var = define_variables(par)
     %% 第一阶段变量 (日前独立于场景)
     var.Uth     = binvar(T,1);
     var.SUth    = binvar(T,1);
+    var.SDth    = binvar(T,1);
     var.Uch     = binvar(T,1);
     var.Udis    = binvar(T,1);
     var.U_up    = binvar(T,1);

@@ -9,12 +9,6 @@ function par = init_case(scenario_name, overrides)
 
     par.flag_storage = 1; par.flag_DR = 1; 
     par.flag_reserve_coupling = 1; par.flag_csp = 1;
-
-    % QoS（业务服务质量）惩罚开关与系数：默认关闭以保持与原模型结果一致
-    par.flag_qos = 0;
-    par.c_delay = 20;            % 负荷延迟/延后执行惩罚系数（元/MWh）
-    par.c_migrate_latency = 8;   % 跨区迁移引入时延惩罚系数（元/MWh）
-    par.c_rebound = 12;          % 响应后回补（反向拉升）惩罚系数（元/MWh）
     par.request_mode = 'auto'; par.request_up_scale = 1.0; 
     par.request_down_scale = 1.0; par.request_round_step = 0.5;
 
@@ -43,6 +37,9 @@ function par = init_case(scenario_name, overrides)
                  1040 980 940 920 980 1180 1320 1260 1040 820 620 500]';
 
     par.Pth_min = 20; par.Pth_max = 80; par.RU = 20; par.RD = 20;
+    par.flag_uc_enhanced = 0;   % 是否启用增强 UC 约束(最小开停机时间)
+    par.UT_min = 2;             % 最小开机时间(h)，温和值，默认关闭不生效
+    par.DT_min = 2;             % 最小停机时间(h)，温和值，默认关闭不生效
     par.c_th = 320; par.c_start = 2000; par.Pgrid_max = 120;
     par.E_max = 40; par.E_min = 5; par.Pch_max = 20; par.Pdis_max = 20; par.eta_ch = 0.95; par.eta_dis = 0.95; par.SOC0 = 20;
 
