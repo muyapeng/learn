@@ -1,10 +1,42 @@
-function Constraints = build_constraints(var, par)
+function Constraints = build_constraints(var, par, obj_aux)
 % [导师终修版：两阶段鲁棒多场景约束集]
 
     T  = par.T;
     dt = par.dt;
     K  = par.K;
     Constraints = [];
+
+    % 二阶段场景成本表达式（用于epigraph约束）
+    if nargin >= 3 && isstruct(obj_aux) && isfield(obj_aux, 'C_second_array')
+        C_second_array = obj_aux.C_second_array;
+    else
+        C_second_array = sdpvar(1, K);
+        for kk = 1:K
+            C_th_k   = par.c_th * sum(var.Pth(:,kk)) * dt;
+            C_csp_k  = par.flag_csp * par.c_csp * sum(var.Pcsp(:,kk)) * dt;
+            C_grid_k = sum(par.price .* var.Pgrid(:,kk)) * dt;
+
+            if par.flag_DR == 1
+                C_DR_k = par.c_DR_up_service * sum(var.P_up(:,kk)) * dt + ...
+                         par.c_DR_down_service * sum(var.P_down(:,kk)) * dt + ...
+                         par.c_cut_comp * sum(var.P_cut(:,kk)) * dt + ...
+                         par.c_DR_up_short * sum(var.P_up_short(:,kk)) * dt + ...
+                         par.c_DR_down_short * sum(var.P_down_short(:,kk)) * dt;
+            else
+                C_DR_k = 0;
+            end
+
+            C_curt_k = par.c_curt * (sum(var.Pwind_curt(:,kk)) + sum(var.Ppv_curt(:,kk))) * dt;
+            if par.flag_storage == 1
+                C_es_k = par.c_es * (sum(var.Pch(:,kk)) + sum(var.Pdis(:,kk))) * dt;
+            else
+                C_es_k = 0;
+            end
+
+            Savings_trans_k = sum(par.price_East .* var.P_trans(:,kk)) * dt;
+            C_second_array(kk) = C_th_k + C_csp_k + C_grid_k + C_DR_k + C_curt_k + C_es_k - Savings_trans_k;
+        end
+    end
 
     %% === 第一阶段 非预期性约束 (Non-anticipative Constraints) ===
     % 这些决策在未知实际风光前就必须下达
@@ -35,6 +67,7 @@ function Constraints = build_constraints(var, par)
 
     %% === 第二阶段 极端场景实时物理约束 ===
     for k = 1:K
+        Constraints = [Constraints, var.Zworst >= C_second_array(k)];
         % 动态生成不确定边界
         if k == 1
             W_avail = par.Pwind_max; P_avail = par.Ppv_max;
@@ -107,7 +140,7 @@ function Constraints = build_constraints(var, par)
             Constraints = [Constraints, var.P_IT(t,k) == par.Pdc_idle + var.P_rigid(t) + var.P_shift(t) + (par.P_cut_base(t) - var.P_cut(t,k)) + var.P_up(t,k) - var.P_down(t,k) + var.P_trans(t,k)];
             Constraints = [Constraints, var.Pdc(t,k) == var.P_IT(t,k) + var.P_cool(t,k) + par.mu_trans * var.P_trans(t,k)];
             Constraints = [Constraints, 0 <= var.P_cool(t,k) <= par.Pcool_max];
-            
+
             decay = par.dt / (par.R_th * par.C_th);
             if t == 1
                 Constraints = [Constraints, var.T_in(t,k) == par.T_in_0*(1-decay) + par.T_out(t)*decay + (par.dt/par.C_th)*var.P_IT(t,k) - (par.dt*par.COP/par.C_th)*var.P_cool(t,k)];

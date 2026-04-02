@@ -17,7 +17,7 @@ function var = define_variables(par)
     %% 第二阶段变量 (日内受制于不确定场景 k)
     var.Pwind    = sdpvar(T,K,'full');
     var.Ppv      = sdpvar(T,K,'full');
-    
+
     var.Pcsp     = sdpvar(T,K,'full');
     var.Pcsp_dir = sdpvar(T,K,'full');
     var.Pcsp_ch  = sdpvar(T,K,'full');
@@ -46,4 +46,7 @@ function var = define_variables(par)
 
     var.Pwind_curt = sdpvar(T,K,'full');
     var.Ppv_curt   = sdpvar(T,K,'full');
+
+    % epigraph辅助变量：二阶段场景成本上界
+    var.Zworst = sdpvar(1,1);
 end

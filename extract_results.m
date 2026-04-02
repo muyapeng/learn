@@ -21,8 +21,8 @@ function res = extract_results(var, par, Objective, sol)
     res.Pdc     = clip_nonneg(value(var.Pdc(:,1)), tol);
     res.P_IT    = clip_nonneg(value(var.P_IT(:,1)), tol);
     res.P_cool  = clip_nonneg(value(var.P_cool(:,1)), tol);
-    res.T_in    = value(var.T_in(:,1)); 
-    res.P_trans = clip_nonneg(value(var.P_trans(:,1)), tol); 
+    res.T_in    = value(var.T_in(:,1));
+    res.P_trans = clip_nonneg(value(var.P_trans(:,1)), tol);
 
     res.P_rigid = clip_nonneg(value(var.P_rigid), tol);
     res.P_shift = clip_nonneg(value(var.P_shift), tol);
@@ -63,6 +63,45 @@ function res = extract_results(var, par, Objective, sol)
     if isfield(par, 'price_East'), res.Savings_trans = sum(par.price_East .* res.P_trans) * dt; else, res.Savings_trans = 0; end
 
     res.Obj_total = clip_nonneg(value(Objective), tol); res.sol_info = sol.info;
+
+    % 鲁棒场景成本统计（基于全部K个场景）
+    K = par.K;
+    scenario_cost = zeros(1, K);
+    for kk = 1:K
+        C_th_k   = par.c_th * sum(value(var.Pth(:,kk))) * dt;
+        C_csp_k  = par.flag_csp * par.c_csp * sum(value(var.Pcsp(:,kk))) * dt;
+        C_grid_k = sum(par.price .* value(var.Pgrid(:,kk))) * dt;
+
+        if isfield(par,'flag_DR') && par.flag_DR == 1
+            C_DR_k = par.c_DR_up_service * sum(value(var.P_up(:,kk))) * dt + ...
+                     par.c_DR_down_service * sum(value(var.P_down(:,kk))) * dt + ...
+                     par.c_cut_comp * sum(value(var.P_cut(:,kk))) * dt + ...
+                     par.c_DR_up_short * sum(value(var.P_up_short(:,kk))) * dt + ...
+                     par.c_DR_down_short * sum(value(var.P_down_short(:,kk))) * dt;
+        else
+            C_DR_k = 0;
+        end
+
+        C_curt_k = par.c_curt * (sum(value(var.Pwind_curt(:,kk))) + sum(value(var.Ppv_curt(:,kk)))) * dt;
+        if isfield(par,'flag_storage') && par.flag_storage == 1
+            C_es_k = par.c_es * (sum(value(var.Pch(:,kk))) + sum(value(var.Pdis(:,kk)))) * dt;
+        else
+            C_es_k = 0;
+        end
+
+        if isfield(par,'price_East')
+            Savings_trans_k = sum(par.price_East .* value(var.P_trans(:,kk))) * dt;
+        else
+            Savings_trans_k = 0;
+        end
+
+        scenario_cost(kk) = C_th_k + C_csp_k + C_grid_k + C_DR_k + C_curt_k + C_es_k - Savings_trans_k;
+    end
+
+    res.ScenarioCost = clip_small(scenario_cost, tol);
+    res.WorstCaseCost = clip_nonneg(value(var.Zworst), tol);
+    res.BestCaseCost = clip_small(min(res.ScenarioCost), tol);
+    res.AvgScenarioCost = clip_small(mean(res.ScenarioCost), tol);
     if isfield(sol, 'solve_time'), res.solve_time = sol.solve_time; else, res.solve_time = NaN; end
 
     res.E_shift = clip_nonneg(sum(res.P_shift) * dt, tol); res.E_cut = clip_nonneg(sum(res.P_cut) * dt, tol);
