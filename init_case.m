@@ -37,6 +37,9 @@ function par = init_case(scenario_name, overrides)
                  1040 980 940 920 980 1180 1320 1260 1040 820 620 500]';
 
     par.Pth_min = 20; par.Pth_max = 80; par.RU = 20; par.RD = 20;
+    par.flag_uc_enhanced = 0;   % 是否启用增强 UC 约束(最小开停机时间)
+    par.UT_min = 2;             % 最小开机时间(h)，温和值，默认关闭不生效
+    par.DT_min = 2;             % 最小停机时间(h)，温和值，默认关闭不生效
     par.c_th = 320; par.c_start = 2000; par.Pgrid_max = 120;
     par.E_max = 40; par.E_min = 5; par.Pch_max = 20; par.Pdis_max = 20; par.eta_ch = 0.95; par.eta_dis = 0.95; par.SOC0 = 20;
 

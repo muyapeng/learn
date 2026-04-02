@@ -7,6 +7,7 @@ function var = define_variables(par)
     %% 第一阶段变量 (日前独立于场景)
     var.Uth     = binvar(T,1);
     var.SUth    = binvar(T,1);
+    var.SDth    = binvar(T,1);
     var.Uch     = binvar(T,1);
     var.Udis    = binvar(T,1);
     var.U_up    = binvar(T,1);
@@ -41,6 +42,7 @@ function var = define_variables(par)
 
     var.P_up     = sdpvar(T,K,'full');
     var.P_down   = sdpvar(T,K,'full');
+    var.P_rebound = sdpvar(T,K,'full');
     var.P_up_short   = sdpvar(T,K,'full');
     var.P_down_short = sdpvar(T,K,'full');
 
