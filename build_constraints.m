@@ -5,6 +5,8 @@ function Constraints = build_constraints(var, par)
     dt = par.dt;
     K  = par.K;
     Constraints = [];
+    H_reb = max(1, round(par.H_rebound));
+    alpha_reb = par.beta_rebound / H_reb;
 
     %% === 第一阶段 非预期性约束 (Non-anticipative Constraints) ===
     % 这些决策在未知实际风光前就必须下达
@@ -115,6 +117,17 @@ function Constraints = build_constraints(var, par)
             if par.flag_DR == 1
                 Constraints = [Constraints, 0 <= var.P_cut(t,k) <= par.cut_ratio_max * par.P_cut_base(t), var.P_cut(t,k) <= par.DR_down_req(t)];
                 Constraints = [Constraints, 0 <= var.P_up(t,k) <= par.P_up_max * var.U_up(t), 0 <= var.P_down(t,k) <= par.P_down_max * var.U_down(t)];
+                if par.flag_rebound == 1
+                    Constraints = [Constraints, 0 <= var.P_rebound(t,k) <= par.P_rebound_max];
+                    idx_hist = max(1, t - H_reb):(t - 1);
+                    if isempty(idx_hist)
+                        Constraints = [Constraints, var.P_rebound(t,k) == 0];
+                    else
+                        Constraints = [Constraints, var.P_rebound(t,k) == alpha_reb * sum(var.P_down(idx_hist,k) + var.P_cut(idx_hist,k))];
+                    end
+                else
+                    Constraints = [Constraints, var.P_rebound(t,k) == 0];
+                end
                 Constraints = [Constraints, var.P_up(t,k) <= par.DR_up_req(t), var.P_down(t,k) <= par.DR_down_req(t)];
                 Constraints = [Constraints, var.P_down(t,k) <= var.P_shift(t) + (par.P_cut_base(t) - var.P_cut(t,k))];
                 Constraints = [Constraints, var.P_IT(t,k) + var.P_cool(t,k) <= par.Pdc_max];
@@ -122,12 +135,12 @@ function Constraints = build_constraints(var, par)
                 Constraints = [Constraints, var.P_up(t,k) + var.P_up_short(t,k) == par.DR_up_req(t)];
                 Constraints = [Constraints, var.P_down(t,k) + var.P_cut(t,k) + var.P_down_short(t,k) == par.DR_down_req(t)];
             else
-                Constraints = [Constraints, var.P_cut(t,k)==0, var.P_up(t,k)==0, var.P_down(t,k)==0, var.P_up_short(t,k)==0, var.P_down_short(t,k)==0];
+                Constraints = [Constraints, var.P_cut(t,k)==0, var.P_up(t,k)==0, var.P_down(t,k)==0, var.P_rebound(t,k)==0, var.P_up_short(t,k)==0, var.P_down_short(t,k)==0];
             end
 
             % 4. 东数西算与热惯性
             Constraints = [Constraints, 0 <= var.P_trans(t,k) <= par.C_band, var.P_trans(t,k) <= par.gamma_trans * par.P_rigid_East(t)];
-            Constraints = [Constraints, var.P_IT(t,k) == par.Pdc_idle + var.P_rigid(t) + var.P_shift(t) + (par.P_cut_base(t) - var.P_cut(t,k)) + var.P_up(t,k) - var.P_down(t,k) + var.P_trans(t,k)];
+            Constraints = [Constraints, var.P_IT(t,k) == par.Pdc_idle + var.P_rigid(t) + var.P_shift(t) + (par.P_cut_base(t) - var.P_cut(t,k)) + var.P_up(t,k) - var.P_down(t,k) + var.P_rebound(t,k) + var.P_trans(t,k)];
             Constraints = [Constraints, var.Pdc(t,k) == var.P_IT(t,k) + var.P_cool(t,k) + par.mu_trans * var.P_trans(t,k)];
             Constraints = [Constraints, 0 <= var.P_cool(t,k) <= par.Pcool_max];
             
