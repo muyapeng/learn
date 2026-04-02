@@ -19,8 +19,10 @@ function Objective = build_objective(var, par)
                      par.c_cut_comp * sum(var.P_cut(:,k)) * dt + ...
                      par.c_DR_up_short * sum(var.P_up_short(:,k)) * dt + ...
                      par.c_DR_down_short * sum(var.P_down_short(:,k)) * dt;
+            C_rebound_k = par.flag_rebound * par.c_rebound * sum(var.P_rebound(:,k)) * dt;
         else
             C_DR_k = 0;
+            C_rebound_k = 0;
         end
 
         C_curt_k = par.c_curt * (sum(var.Pwind_curt(:,k)) + sum(var.Ppv_curt(:,k))) * dt;
@@ -32,7 +34,7 @@ function Objective = build_objective(var, par)
         
         Savings_trans_k = sum(par.price_East .* var.P_trans(:,k)) * dt;
 
-        C_second_k = C_th_k + C_csp_k + C_grid_k + C_DR_k + C_curt_k + C_es_k - Savings_trans_k;
+        C_second_k = C_th_k + C_csp_k + C_grid_k + C_DR_k + C_rebound_k + C_curt_k + C_es_k - Savings_trans_k;
         C_second_array = [C_second_array, C_second_k];
     end
 
