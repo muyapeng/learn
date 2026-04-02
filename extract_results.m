@@ -1,6 +1,11 @@
 function res = extract_results(var, par, Objective, sol)
 % [导师终修版：平滑映射鲁棒决策至画图层]
-    dt  = par.dt; tol = 1e-8; k = par.compute_power_coeff;
+    dt  = par.dt; tol = 1e-8;
+    if isfield(par, 'compute_power_coeff') && ~isempty(par.compute_power_coeff)
+        k = par.compute_power_coeff;
+    else
+        k = 1.0;
+    end
 
     % 提取基础标称场景(k=1)用于可视化，保障与之前所有的作图脚本完全兼容
     res.Pwind = clip_nonneg(value(var.Pwind(:,1)), tol);
