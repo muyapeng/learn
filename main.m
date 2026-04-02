@@ -100,7 +100,12 @@ legend([b_pos, b_neg, gca().Children(1)], legend_labels, 'Location', 'bestoutsid
 
 %% 图3：主动响应相关电量对比
 figure('Name','主动响应相关电量对比');
-bar(summary(:,11:15), 'grouped');
+bar([ ...
+    ResultTable.E_up, ...
+    ResultTable.E_down, ...
+    ResultTable.E_cut, ...
+    ResultTable.E_up_short, ...
+    ResultTable.E_down_short], 'grouped');
 set(gca, 'XTickLabel', scenario_names, 'FontSize', 10);
 ylabel('电量 / MWh');
 title('主动响应电量与缺额对比');
@@ -110,7 +115,7 @@ grid on;
 
 %% 图4：响应完成率对比
 figure('Name','响应完成率对比');
-bar(summary(:,16:17));
+bar(summary(:,17:18));
 set(gca, 'XTickLabel', scenario_names, 'FontSize', 11);
 ylabel('比例');
 ylim([0 1.05]);
@@ -120,7 +125,7 @@ grid on;
 
 %% 图5：峰谷差对比
 figure('Name','峰谷差对比');
-bar(summary(:,20:21));
+bar(summary(:,21:22));
 set(gca, 'XTickLabel', scenario_names, 'FontSize', 11);
 ylabel('MW');
 title('数据中心负荷与系统净负荷峰谷差');
